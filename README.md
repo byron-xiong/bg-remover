@@ -90,7 +90,7 @@ npm run lint    # 语法 lint
 | `medium` | 库默认 | — | 库内置 medium 模型 |
 | `small` | 库默认 | — | 库内置 small 模型 |
 
-### 自定义模型（（高级））
+### 自定义模型（高级）
 
 库本身只内置 ISNet 系列。如果你想用更强的模型（RMBG-2.0、BiRefNet、u2net 等），可以：
 
@@ -114,7 +114,7 @@ npm run lint    # 语法 lint
 ## 🧪 测试与质量
 
 ```bash
-npm test         # 50 个单元测试
+npm test         # 52 个单元测试
 npm run lint     # 5 个 JS 文件语法检查
 ```
 
@@ -149,13 +149,16 @@ bg-remover/
 
 ## 🖥️ 桌面版（`desktop/`）
 
-PyInstaller 打包的 Windows 桌面应用：
+PyInstaller 打包的 Windows 桌面应用。先安装桌面版依赖：
 
 ```bash
 cd desktop
+python -m pip install -r requirements.txt
 pyinstaller BgRemover.spec
 # 产物在 desktop/dist/BgRemover.exe
 ```
+
+要求：Windows 10/11、WebView2 运行时，以及首次加载模型所需的网络连接。
 
 ---
 
@@ -165,6 +168,7 @@ pyinstaller BgRemover.spec
 - **下载路径不可选择**（浏览器安全模型限制）：模型存于「浏览器磁盘缓存 + Service Worker Cache Storage」，存储路径由浏览器决定。如需清理，可在面板点「清理模型缓存」或 DevTools → Application → Storage
 - 批量模式默认**顺序**处理（避免大图并发 OOM）；如需并发可手动改造为 worker 池
 - 自定义模型 URL 必须能被浏览器访问（CORS 友好）。UI 提供「检测」按钮预检可达性，提示是否返回 CORS 头
+- 批量模式目前只应用纯色底色，不应用渐变/背景图片/贴纸描边/投影/预设尺寸；单图模式支持这些导出选项
 
 ---
 
