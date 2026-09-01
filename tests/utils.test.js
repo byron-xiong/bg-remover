@@ -8,6 +8,7 @@ import {
   percentOf,
   stripExt,
   isImageMime,
+  escapeHtml,
   cutoutFileName,
   paintBackground,
   probeUrl,
@@ -119,6 +120,16 @@ describe('isImageMime', () => {
     assert.equal(isImageMime('application/pdf'), false);
     assert.equal(isImageMime(''), false);
     assert.equal(isImageMime(null), false);
+  });
+});
+
+describe('escapeHtml', () => {
+  it('escapes markup-sensitive characters', () => {
+    assert.equal(escapeHtml('<img src="x"> & \'quoted\''), '&lt;img src=&quot;x&quot;&gt; &amp; &#39;quoted&#39;');
+  });
+  it('handles non-string values', () => {
+    assert.equal(escapeHtml(null), '');
+    assert.equal(escapeHtml(42), '42');
   });
 });
 

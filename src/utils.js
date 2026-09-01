@@ -83,6 +83,18 @@ export function stripExt(name, fallback = 'image') {
   return name.replace(/\.[^.]+$/, '') || fallback;
 }
 
+/* HTML 文本转义：用于把文件名和错误信息安全地渲染到 innerHTML。 */
+export function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[char]));
+}
+
 /* 文件 MIME 是否为图片。 */
 export function isImageMime(type) {
   return typeof type === 'string' && type.startsWith('image/');
