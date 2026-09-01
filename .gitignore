@@ -1,5 +1,18 @@
 # Dependencies
 node_modules/
+.venv/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
 
 # Build artifacts
 desktop/build/

@@ -1,7 +1,7 @@
 """抠图工具桌面版：pywebview 原生窗口 + 内置 HTTP 服务。
 
 打包：PyInstaller --onefile --windowed --add-data 静态文件
-同事机器要求：Windows 10/11（含 WebView2 运行时）+ 联网（首次需从 CDN 下载模型）。
+运行要求：Windows 10/11（含 WebView2 运行时）+ 联网（首次需从 CDN 下载模型）。
 """
 
 import sys

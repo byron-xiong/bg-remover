@@ -59,7 +59,7 @@ self.addEventListener('fetch', (event) => {
           if (res.ok) cache.put(req, res.clone());
           return res;
         } catch (e) {
-          return new Response('',, { status: 504, statusText: 'offline' });
+          return new Response('', { status: 504, statusText: 'offline' });
         }
       })
     );
