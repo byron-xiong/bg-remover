@@ -1132,6 +1132,7 @@ window.addEventListener('paste', (e) => {
 });
 resultCanvasEl.addEventListener('pointerleave', hideBrushCursor);
 
+
 /* ---------- 贴纸效果事件 ---------- */
 els.strokeWidth.addEventListener('input', () => {
   els.strokeWidthVal.textContent = els.strokeWidth.value + '%';
