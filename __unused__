@@ -1,4 +1,0 @@
-resultCanvasEl.addEventListener('pointerleave', hideBrushCursor);
-
-
-/* ---------- 贴纸效果事件 ---------- */
