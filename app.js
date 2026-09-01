@@ -1,7 +1,7 @@
 /* 纯前端 AI 抠图 — 基于 @imgly/background-removal (ISNet ONNX)
  * 图片全程不离开本机：模型经 CDN 加载后在浏览器内推理。 */
 
-import { percentOf, formatBytes, formatElapsed, stripExt, isImageMime, cutoutFileName, paintBackground, probeUrl } from './src/utils.js';
+import { percentOf, formatBytes, formatElapsed, stripExt, isImageMime, escapeHtml, cutoutFileName, paintBackground, probeUrl } from './src/utils.js';
 import {
   createQueue,
   enqueue,
@@ -117,6 +117,7 @@ const state = {
   editCanvas: document.createElement('canvas'), // 可修整的编辑画布（原始尺寸）
   batch: createQueue(), // 批量队列
   bgImageBitmap: null,  // 自定义背景图位图
+  bgImageUrl: null,     // 自定义背景图对象 URL
 };
 
 /* ---------- 库懒加载（首次调用才拉取脚本与模型） ---------- */
@@ -354,7 +355,7 @@ function syncPreviewBg() {
 
 function syncBgKindVisibility() {
   const k = els.bgKindSelect.value;
-  els.bgColorInput.classList.toggle('hidden', k !== 'color');
+  els.bgColor.classList.toggle('hidden', k !== 'color');
   els.bgGradFrom.classList.toggle('hidden', k !== 'gradient');
   els.bgGradTo.classList.toggle('hidden', k !== 'gradient');
   els.bgImageBtn.classList.toggle('hidden', k !== 'image');
@@ -665,15 +666,20 @@ els.downloadBtn.addEventListener('click', async () => {
 /* ---------- 重置 ---------- */
 els.resetBtn.addEventListener('click', () => {
   if (state.sourceUrl) URL.revokeObjectURL(state.sourceUrl);
+  if (state.bgImageUrl) URL.revokeObjectURL(state.bgImageUrl);
+  state.originalBitmap?.close?.();
+  state.bgImageBitmap?.close?.();
   Object.assign(state, {
     file: null,
     fileName: '',
     sourceUrl: null,
     aiBlob: null,
+    originalBitmap: null,
     undoStack: [],
+    redoStack: [],
+    bgImageBitmap: null,
+    bgImageUrl: null,
   });
-  state.originalBitmap?.close?.();
-  state.originalBitmap = null;
   els.sourceImg.removeAttribute('src');
   els.resultCanvas.classList.add('hidden');
   els.resultCanvas.width = els.resultCanvas.height = 0;
@@ -723,6 +729,7 @@ els.bgImageBtn.addEventListener('click', () => els.bgImageInput.click());
 els.bgImageInput.addEventListener('change', async () => {
   const f = els.bgImageInput.files[0];
   if (!f) return;
+  state.bgImageBitmap?.close?.();
   if (state.bgImageUrl) URL.revokeObjectURL(state.bgImageUrl);
   state.bgImageBitmap = await createImageBitmap(f);
   state.bgImageUrl = URL.createObjectURL(f);
@@ -875,6 +882,8 @@ window.addEventListener('keydown', (e) => {
   // 跳过表单元素内的按键（让用户正常输入）
   const tag = (e.target?.tagName || '').toLowerCase();
   const inField = ['input', 'textarea', 'select'].includes(tag);
+  // 表单输入保留浏览器原生编辑快捷键（撤销、重做等）
+  if (inField) return;
 
   // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y — 撤销/重做
   if ((e.ctrlKey || e.metaKey) && !e.altKey) {
@@ -891,8 +900,6 @@ window.addEventListener('keydown', (e) => {
       return;
     }
   }
-  // 在表单里其余快捷键不响应
-  if (inField) return;
 
   // +/- 笔刷大小
   if (e.key === '+' || e.key === '=') {
@@ -968,17 +975,20 @@ function renderBatch() {
     .map((it) => {
       const cls = it.status;
       const pct = it.status === STATUS.PROCESSING ? Math.min(100, Math.round(it.progress)) : (it.status === STATUS.DONE ? 100 : 0);
-      const err = it.status === STATUS.FAILED ? `<span class="err" title="${(it.error || '').replace(/"/g, '&quot;')}">${it.error || ''}</span>` : '';
+      const id = escapeHtml(it.id);
+      const fileName = escapeHtml(it.fileName);
+      const error = escapeHtml(it.error || '');
+      const err = it.status === STATUS.FAILED ? `<span class="err" title="${error}">${error}</span>` : '';
       const retryBtn = it.status === STATUS.FAILED
         ? `<button class="btn small ghost" data-act="retry" title="重试">↻</button>` : '';
-      const del = = it.status !== STATUS.PROCESSING
+      const delBtn = it.status !== STATUS.PROCESSING
         ? `<button class="btn small ghost" data-act="remove" title="删除">✕</button>` : '';
-      return `<li data-id="${it.id}">
-        <span class="name" title="${it.fileName.replace(/"/g, '&quot;')}">${it.fileName}</span>
+      return `<li data-id="${id}">
+        <span class="name" title="${fileName}">${fileName}</span>
         <div class="mini-bar"><div style="width:${pct}%"></div></div>
         <span class="badge ${cls}">${labelOf(it.status)}</span>
         ${err}
-        ${retryBtn}${del}
+        ${retryBtn}${delBtn}
       </li>`;
     })
     .join('');
@@ -1122,16 +1132,6 @@ window.addEventListener('paste', (e) => {
 });
 resultCanvasEl.addEventListener('pointerleave', hideBrushCursor);
 
-// Ctrl+Z / Cmd+Z 撤销（仅当修整栏可见时）
-window.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-    if (state.aiBlob && !els.editorBar.classList.contains('hidden')) {
-      e.preventDefault();
-      undo();
-    }
-  }
-});
-
 /* ---------- 贴纸效果事件 ---------- */
 els.strokeWidth.addEventListener('input', () => {
   els.strokeWidthVal.textContent = els.strokeWidth.value + '%';
@@ -1260,3 +1260,5 @@ refreshCacheInfo();
 // details 是 cacheStatus 的三层祖辈 (span → div.cache-row → div.cache-info → details)
 const cacheDetails = els.cacheStatus.parentElement.parentElement.parentElement;
 if (cacheDetails && cacheDetails.tagName === 'DETAILS') {
+  cacheDetails.addEventListener('toggle', refreshCacheInfo);
+}
